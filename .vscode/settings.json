@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "matrix.h": "c",
+        "tensor.h": "c"
+    }
+}

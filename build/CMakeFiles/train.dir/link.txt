@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/train.dir/train.c.o CMakeFiles/train.dir/matrix.c.o CMakeFiles/train.dir/neural.c.o -o train 

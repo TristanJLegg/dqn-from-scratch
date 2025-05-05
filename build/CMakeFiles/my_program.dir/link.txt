@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/my_program.dir/train.c.o CMakeFiles/my_program.dir/matrix.c.o -o my_program 

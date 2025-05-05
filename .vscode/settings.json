@@ -3,6 +3,15 @@
         "stdio.h": "c",
         "stdlib.h": "c",
         "matrix.h": "c",
-        "tensor.h": "c"
-    }
+        "tensor.h": "c",
+        "activation.h": "c",
+        "storage.h": "c",
+        "neural.h": "c",
+        "math.h": "c",
+        "loss.h": "c",
+        "locale": "c",
+        "string": "c",
+        "time.h": "c"
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

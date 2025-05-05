@@ -1,0 +1,21 @@
+# Binary and object files
+*.o
+*.out
+*.exe
+*.a
+*.so
+*.dylib
+train
+
+# Video files
+*.y4m
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db

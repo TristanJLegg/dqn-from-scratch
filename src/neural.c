@@ -166,86 +166,6 @@ Gradients backward(Matrix input, Matrix* layerOutputs, Neural neural, Loss loss)
     return gradients;
 }
 
-// Gradients* backward(Matrix input, Matrix* layerOutputs, Neural neural, Loss loss) {
-//     // Allocate memory for the gradients struct
-//     Gradients* gradients = (Gradients*)malloc(sizeof(Gradients));
-    
-//     // Initialize fields
-//     gradients->dWeights = (Matrix*) malloc((neural.length - 1) * sizeof(Matrix));
-//     gradients->dBiases = (Matrix*) malloc((neural.length - 1) * sizeof(Matrix));
-    
-//     // Initialize gradient matrices
-//     for (int i = 0; i < neural.length - 1; i++) {
-//         gradients->dWeights[i] = createEmptyMatrix(neural.weights[i].rows, neural.weights[i].cols);
-//         gradients->dBiases[i] = createEmptyMatrix(neural.biases[i].rows, neural.biases[i].cols);
-//     }
-    
-//     // Set dInput field to indicate it doesn't contain valid matrix data
-//     gradients->dInput.values = NULL;
-//     gradients->dInput.rows = 0;
-//     gradients->dInput.cols = 0;
-    
-//     // Start with the output gradient from the loss function
-//     Matrix delta = copyMatrix(loss.outputGradient);
-    
-//     // Loop backwards through the layers
-//     for (int i = neural.length - 2; i >= 0; i--) {
-//         // Current layer output (or input for first layer)
-//         Matrix currentOutput = (i == 0) ? input : layerOutputs[i - 1];
-        
-//         // Input to current layer's activation function
-//         Matrix activationInput;
-//         int needToFree = 0;
-        
-//         if (i == neural.length - 2) {
-//             // For the last layer, we use the actual output
-//             activationInput = layerOutputs[i];
-//             // Do NOT set needToFree = 1 here, as we don't own this memory
-//         } else {
-//             // For hidden layers, we need to compute it
-//             Matrix weightedInput = multiplyMatrices(currentOutput, neural.weights[i]);
-//             activationInput = addMatricesWithRepeat(weightedInput, neural.biases[i], 0);
-//             freeMatrix(weightedInput);
-//             needToFree = 1;  // We created this matrix, so we must free it
-//         }
-        
-//         // Compute activation derivative
-//         Matrix activationDeriv = activationDerivative(activationInput, neural.activations[i]);
-        
-//         // Apply chain rule: delta = delta * activation_derivative
-//         Matrix oldDelta = delta;
-//         delta = multiplyMatricesElementWise(delta, activationDeriv);
-//         freeMatrix(oldDelta);
-//         freeMatrix(activationDeriv);
-        
-//         // Compute weight gradients: dW = currentOutput^T * delta
-//         Matrix currentOutputT = transposeMatrix(currentOutput);
-//         gradients->dWeights[i] = multiplyMatrices(currentOutputT, delta);
-//         freeMatrix(currentOutputT);
-        
-//         // Compute bias gradients: db = sum(delta) = delta (for batch size 1)
-//         gradients->dBiases[i] = copyMatrix(delta);
-        
-//         // Propagate delta to previous layer (except for input layer)
-//         if (i > 0) {
-//             Matrix weightT = transposeMatrix(neural.weights[i]);
-//             Matrix newDelta = multiplyMatrices(delta, weightT);
-//             freeMatrix(weightT);
-//             freeMatrix(delta);
-//             delta = newDelta;
-//         } else {
-//             freeMatrix(delta);
-//         }
-        
-//         // Free activationInput ONLY if we created it
-//         if (needToFree) {
-//             freeMatrix(activationInput);
-//         }
-//     }
-    
-//     return gradients;
-// }
-
 Neural copyNeural(Neural neural) {
     Neural copy = createNeuralWithZeroWeights(neural.length, neural.neurons, neural.activations);
 
@@ -264,6 +184,97 @@ Neural copyNeural(Neural neural) {
     }
 
     return copy;
+}
+
+void save(const Neural* network, const char* path) {
+    FILE* f = fopen(path, "wb");
+
+    unsigned int u32 = (unsigned int)network->length;
+    fwrite(&u32, sizeof(u32), 1, f);
+
+    for (int i = 0; i < network->length; ++i) {
+        u32 = (unsigned int)network->neurons[i];
+        fwrite(&u32, sizeof(u32), 1, f);
+    }
+
+    for (int i = 0; i < network->length - 1; ++i) {
+        u32 = (unsigned int)network->activations[i];
+        fwrite(&u32, sizeof(u32), 1, f);
+    }
+
+    for (int i = 0; i < network->length - 1; ++i) {
+        unsigned int rows = (unsigned int)network->weights[i].rows;
+        unsigned int cols = (unsigned int)network->weights[i].cols;
+        fwrite(&rows, sizeof(rows), 1, f);
+        fwrite(&cols, sizeof(cols), 1, f);
+        for (int r = 0; r < (int)rows; ++r)
+            for (int c = 0; c < (int)cols; ++c)
+                fwrite(&network->weights[i].values[r][c], sizeof(float), 1, f);
+
+        rows = (unsigned int)network->biases[i].rows;
+        cols = (unsigned int)network->biases[i].cols;
+        fwrite(&rows, sizeof(rows), 1, f);
+        fwrite(&cols, sizeof(cols), 1, f);
+        for (int r = 0; r < (int)rows; ++r)
+            for (int c = 0; c < (int)cols; ++c)
+                fwrite(&network->biases[i].values[r][c], sizeof(float), 1, f);
+    }
+
+    fclose(f);
+}
+
+void load(Neural* network, const char* path) {
+    FILE* f = fopen(path, "rb");
+
+    unsigned int lengthU = 0;
+    fread(&lengthU, sizeof(lengthU), 1, f);
+    int length = (int)lengthU;
+
+    int* neurons = (int*)malloc(sizeof(int) * length);
+    for (int i = 0; i < length; ++i) {
+        unsigned int sz = 0;
+        fread(&sz, sizeof(sz), 1, f);
+        neurons[i] = (int)sz;
+    }
+
+    Activation* acts = (Activation*)malloc(sizeof(Activation) * (length - 1));
+    for (int i = 0; i < length - 1; ++i) {
+        unsigned int a = 0;
+        fread(&a, sizeof(a), 1, f);
+        acts[i] = (Activation)a;
+    }
+
+    Neural fresh = createNeuralWithRandomWeights(length, neurons, acts);
+
+    for (int i = 0; i < length - 1; ++i) {
+        unsigned int rows = 0, cols = 0;
+
+        fread(&rows, sizeof(rows), 1, f);
+        fread(&cols, sizeof(cols), 1, f);
+        Matrix w = createEmptyMatrix((int)rows, (int)cols);
+        for (int r = 0; r < (int)rows; ++r)
+            for (int c = 0; c < (int)cols; ++c)
+                fread(&w.values[r][c], sizeof(float), 1, f);
+
+        fread(&rows, sizeof(rows), 1, f);
+        fread(&cols, sizeof(cols), 1, f);
+        Matrix b = createEmptyMatrix((int)rows, (int)cols);
+        for (int r = 0; r < (int)rows; ++r)
+            for (int c = 0; c < (int)cols; ++c)
+                fread(&b.values[r][c], sizeof(float), 1, f);
+
+        freeMatrix(fresh.weights[i]);
+        freeMatrix(fresh.biases[i]);
+        fresh.weights[i] = w;
+        fresh.biases[i]  = b;
+    }
+
+    fclose(f);
+    *network = fresh;
+
+    /* if your constructor copies these internally, it’s safe to free here */
+    free(neurons);
+    free(acts);
 }
 
 void printNeural(Neural neural) {

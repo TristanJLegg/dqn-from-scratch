@@ -24,6 +24,8 @@ Neural createNeuralWithRandomWeights(int length, int neurons[], Activation activ
 Matrix* forward(Matrix input, Neural neural);
 Gradients backward(Matrix input, Matrix* layerOutputs, Neural neural, Loss loss);
 Neural copyNeural(Neural neural);
+void save(const Neural* network, const char* path);
+void load(Neural* network, const char* path);
 void printNeural(Neural neural);
 void freeNeural(Neural neural);
 void freeGradients(Gradients gradients, int n);

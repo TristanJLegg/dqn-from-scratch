@@ -7,25 +7,39 @@
 #include "storage.h"
 #include "cartpole.h"
 #include "video.h"
+#include "helper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
-int main() {
+int main(int argc, char* argv[]) {
     // Training parameters
-    float learningRate = 0.0001f;
-    float epsilonMax = 1.0f;
-    float epsilonMin = 0.05f;
-    float epsilonDecay = 1.0f / 4000.0f;
-    float gamma = 0.99f;
-    int targetUpdateInterval = 100;
-    int storageSize = 1000;
-    int batchSize = 32;
-    int numSteps = 20000;
+    float learningRate       = (float) getFloatArg(argc, argv, "--lr", 0.0001);
+    float epsilonMax         = (float) getFloatArg(argc, argv, "--eps-max", 1.0);
+    float epsilonMin         = (float) getFloatArg(argc, argv, "--eps-min", 0.05);
+    float epsilonDecay       = (float) getFloatArg(argc, argv, "--eps-decay", 1.0 / 4000.0);
+    float gamma              = (float) getFloatArg(argc, argv, "--gamma", 0.99);
+    int targetUpdateInterval = (int) getIntArg(argc, argv, "--target-update", 100);
+    int storageSize          = (int) getIntArg(argc, argv, "--storage", 1000);
+    int batchSize            = (int) getIntArg(argc, argv, "--batch", 32);
+    int numSteps             = (int) getIntArg(argc, argv, "--steps", 20000);
 
     srand(time(NULL));
+
+    printf("Training with parameters:\n");
+    printf("  Learning Rate       = %f\n", learningRate);
+    printf("  Epsilon Max         = %f\n", epsilonMax);
+    printf("  Epsilon Min         = %f\n", epsilonMin);
+    printf("  Epsilon Decay       = %f\n", epsilonDecay);
+    printf("  Gamma               = %f\n", gamma);
+    printf("  Target Update Intvl = %d\n", targetUpdateInterval);
+    printf("  Storage Size        = %d\n", storageSize);
+    printf("  Batch Size          = %d\n", batchSize);
+    printf("  Num Steps           = %d\n", numSteps);
+
 
     // Initialize the network and the target network
     printf("Initializing neural networks...\n");
@@ -156,7 +170,8 @@ int main() {
         // Reset the environment if done
         if (cartPoleState.terminated) {
             cartPoleState = resetCartPole();
-            printf("Step: %d, Episode reward: %f, Action0: %d, Action1: %d\n", i + 1, episodeReward, episodeAction0Taken, episodeAction1Taken);
+            printf("Step: %-6d  Reward: %-10.2f  Action0: %-6d  Action1: %-6d\n", i + 1, episodeReward, episodeAction0Taken, episodeAction1Taken);
+
             episodeReward = 0.0f;
             episodeAction0Taken = 0;
             episodeAction1Taken = 0;
@@ -177,67 +192,8 @@ int main() {
         }
     }
 
-    // Record 3 episodes
-    episodeReward = 0.0f;
-    for (i = 0; i < 3; i++) {
-        cartPoleState = resetCartPole();
-
-        episodeReward = 0.0f;
-
-        state = createMatrix(
-            1,
-            4,
-            (float[][4]){{
-                cartPoleState.cartPosition, 
-                cartPoleState.cartVelocity, 
-                cartPoleState.poleAngle, 
-                cartPoleState.poleAngularVelocity
-            }}
-        );
-
-        int done = 0;
-        
-        Matrix videoFrames[200];
-        int frameCount = 0;
-        while (done == 0)
-        {
-            Matrix* output = forward(state, network);
-            float action0Value = output[network.length - 1].values[0][0];
-            float action1Value = output[network.length - 1].values[0][1];
-            int action = (action0Value > action1Value) ? 0 : 1; // argmax
-            freeMatrices(output, network.length);
-
-            cartPoleState = stepCartPole(action, cartPoleState);
-            done = cartPoleState.terminated;
-            episodeReward += cartPoleState.reward;
-            freeMatrix(state);
-            state = createMatrix(
-                1,
-                4,
-                (float[][4]){{
-                    cartPoleState.cartPosition, 
-                    cartPoleState.cartVelocity, 
-                    cartPoleState.poleAngle, 
-                    cartPoleState.poleAngularVelocity
-                }}
-            );
-            videoFrames[frameCount] = renderCartPole(cartPoleState);
-            frameCount++;
-        }
-        printf("Video Episode Reward: %f, Frame Count: %d\n", episodeReward, frameCount);
-
-        // file name with index
-        char filename[50];
-        snprintf(filename, sizeof(filename), "cartpole_episode_%d.y4m", i);
-        saveMatricesToY4M(videoFrames, frameCount, 30, filename);
-        printf("Video saved to %s\n", filename);
-        
-        for (int j = 0; j < frameCount; j++) {
-            freeMatrix(videoFrames[j]);
-        }
-
-        freeMatrix(state);
-    }
+    // Save the neural net
+    save(&network, "model.bin");
 
     // Free resources
     freeNeural(network);

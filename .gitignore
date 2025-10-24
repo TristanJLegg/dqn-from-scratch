@@ -1,21 +1,17 @@
-# Binary and object files
 *.o
 *.out
 *.exe
 *.a
 *.so
 *.dylib
+*.bin
 train
-
-# Video files
+video
+evaluate
 *.y4m
-
-# Editor files
 .vscode/
 .idea/
 *.swp
 *~
-
-# OS-specific
 .DS_Store
 Thumbs.db

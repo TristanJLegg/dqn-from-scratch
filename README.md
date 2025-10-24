@@ -24,44 +24,65 @@ The entire project was built from the ground up to test and strengthen my profic
 - **Q-Learning**: Implements discounted rewards for long-term planning
 
 ### Environment and Visualization
-- **CartPole Environment**: Classic control problem implementation
-- **Simple Graphics System**: Visualises the CartPole state
+- **CartPole Environment**: Classic control problem implementation (max_reward = 1)
+- **Simple Graphics System**: Visualizes the CartPole state
 - **Video Recording**: Capability to save agent episodes as Y4M videos
 
-## Compiling and Execution
+## Compilation
 
-This project uses no third-party libraries, so all you need is a GCC compiler.
+The project uses only the C standard library and gcc. No third-party dependencies are required.
 
-To compile the project, run the following command from the project root:
-
-```bash
-gcc -Iinclude train.c src/*.c -o train -lm
-```
-
-To run the program after compilation:
+To compile all executables, run:
 
 ```bash
-./train
+gcc -Iinclude train.c src/*.c -o train -lm && \
+gcc -Iinclude video.c src/*.c -o video -lm && \
+gcc -Iinclude evaluate.c src/*.c -o evaluate -lm
 ```
 
-When you run the program, it will:
-1. Initialise the neural network and environment
-2. Train the DQN agent for a specified number of steps
-3. Record 3 episodes of the trained agent
-4. Save the recordings as Y4M video files
+This will produce three binaries:
+- train: trains a DQN agent
+- video: loads a trained model and records a single episode as a Y4M video
+- evaluate: loads a trained model and runs evaluation episodes, reporting average reward
 
-## Customisation
+## Usage
 
-You can adjust the training parameters in `train.c`, including:
-- Learning rate
-- Epsilon decay rate (controls exploration vs. exploitation)
-- Discount factor
-- Network architecture
-- Number of training steps
-- Batch size
-- Experience replay buffer size
+### Training
 
-Feel free to experiment with different parameters to optimise training for the CartPole task.
+```bash
+./train [options]
+```
+
+Optional parameters:
+- --lr <float>: learning rate (default 0.0001)
+- --eps-max <float>: initial epsilon for exploration (default 1.0)
+- --eps-min <float>: minimum epsilon (default 0.05)
+- --eps-decay <float>: epsilon decay per step (default 1/4000)
+- --gamma <float>: discount factor (default 0.99)
+- --target-update <int>: steps between target network updates (default 100)
+- --storage <int>: replay buffer size (default 1000)
+- --batch <int>: batch size (default 32)
+- --steps <int>: number of training steps (default 20000)
+
+### Rendering
+
+```bash
+./video [options]
+```
+
+Optional parameters:
+- --model <file>: model file to load (default model.bin)
+- --out <file>: output video filename (default episode.y4m)
+
+### Evaluating
+
+```bash
+./evaluate [options]
+```
+
+Optional parameters:
+- --model <file>: model file to load (default model.bin)
+- --episodes <n>: number of episodes to evaluate (default 1)
 
 ## Contact
 
